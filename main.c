@@ -3,6 +3,7 @@
 #include <math.h>
 
 #define OUTPUT_FILE "predictions.out"
+#define SHOW_COEFFS 0
 
 #define NUM_ARGS 3
 const char reqArgs[NUM_ARGS][50] = {
@@ -25,12 +26,12 @@ int main(int argc, char * argv[]){
     unsigned degree = (unsigned)atoi(argv[3]);
     unsigned matDim = degree + 1;
 
-    double predictors[numPoints];
+    double inputs[numPoints];
     double responses[numPoints];
 
     FILE * file = fopen(fileName, "r");
     for(unsigned i = 0; i < numPoints; i++){
-        fscanf(file, "%lf", &predictors[i]);
+        fscanf(file, "%lf", &inputs[i]);
         fscanf(file, "%lf", &responses[i]);
     }
     fclose(file);
@@ -40,7 +41,7 @@ int main(int argc, char * argv[]){
     double designMat[numPoints][matDim];
     for(unsigned i = 0; i < numPoints; i++){
         for(unsigned j = 0; j < matDim; j++){
-            designMat[i][j] = pow(predictors[i], j);
+            designMat[i][j] = pow(inputs[i], j);
         }
     }
 
@@ -163,9 +164,50 @@ int main(int argc, char * argv[]){
             value += inverse[i][j] * crossProductVec[j];
         }
         coefficients[i] = value;
-        printf("%lf ", coefficients[i]);
+        if(SHOW_COEFFS){
+            printf("%lf ", coefficients[i]);
+            if(i > 0){
+                printf("x^%u ", i);
+            }
+            if(i + 1 < matDim){
+                printf("+ ");
+            }
+        }
     }
-    printf("\n");
+
+    if(SHOW_COEFFS){
+        printf("\n");
+    }
+
+    // Predict responses to inputs based on modeled function
+
+    double predictions[numPoints];
+    for(unsigned i = 0; i < numPoints; i++){
+        predictions[i] = coefficients[0];
+        for(unsigned j = 1; j < matDim; j++){
+            predictions[i] += coefficients[j] * pow(inputs[i], j);
+        }
+    }
+
+    // Calculate mean squared error
+
+    double squaredErrors[numPoints];
+    for(unsigned i = 0; i < numPoints; i++){
+        squaredErrors[i] = pow(predictions[i] - responses[i], 2);
+    }
+    double meanSquaredError = 0;
+    for(unsigned i = 0; i < numPoints; i++){
+        meanSquaredError += squaredErrors[i];
+    }
+    meanSquaredError /= numPoints;
+    printf("MSE: %.5f\n", meanSquaredError);
+    printf("MSE Root: %.5f\n", pow(meanSquaredError, 0.5));
+
+    file = fopen(OUTPUT_FILE, "w");
+    for(unsigned i = 0; i < numPoints; i++){
+        fprintf(file, "%lf\n", predictions[i]);
+    }
+    fclose(file);
 
     return 0;
 }
