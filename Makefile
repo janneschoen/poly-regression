@@ -5,7 +5,7 @@ TARGET = polyreg
 SRC = main.c
 
 $(TARGET): $(SRC)
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $< -o $@ -lm
 
 clean:
 	rm -f $(TARGET)
