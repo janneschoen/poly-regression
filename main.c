@@ -3,12 +3,11 @@
 #include <math.h>
 
 #define OUTPUT_FILE "predictions.out"
-#define SHOW_COEFFS 0
 
 #define NUM_ARGS 3
 const char reqArgs[NUM_ARGS][50] = {
-    "path of data file",
-    "number of observations for regression",
+    "path of input file",
+    "path of response file",
     "degree of regression",
 };
 
@@ -21,20 +20,41 @@ int main(int argc, char * argv[]){
         return 1;
     }
 
-    char * fileName = argv[1];
-    unsigned numPoints = (unsigned)atoi(argv[2]);
+    char * inputFile = argv[1];
+    char * responseFile = argv[2];
     unsigned degree = (unsigned)atoi(argv[3]);
     unsigned matDim = degree + 1;
 
-    double inputs[numPoints];
-    double responses[numPoints];
-
-    FILE * file = fopen(fileName, "r");
-    for(unsigned i = 0; i < numPoints; i++){
-        fscanf(file, "%lf", &inputs[i]);
-        fscanf(file, "%lf", &responses[i]);
+    // Counting lines of file
+    unsigned countLines(char * fileName){
+        unsigned numLines = 0;
+        double num;
+        FILE * file = fopen(fileName, "r");
+        while(fscanf(file, "%lf", &num) != EOF){
+            numLines ++;
+        }
+        return numLines;
     }
-    fclose(file);
+
+    // Reading double numbers of file into array
+    void readNumbers(char * fileName, double * array, unsigned num){
+        FILE * file = fopen(fileName, "r");
+        for(unsigned i = 0; i < num; i++){
+            fscanf(file, "%lf", &array[i]);
+        }
+    }
+
+    unsigned numInputs = countLines(inputFile);
+    unsigned numPoints = countLines(responseFile);
+
+    double inputs[numInputs];
+    double responses[numPoints];
+    readNumbers(inputFile, inputs, numInputs);
+    readNumbers(responseFile, responses, numPoints);
+
+    printf("Number of observations: %u\n", numPoints);
+    printf("Inputs with unknown response: %u\n", numInputs - numPoints);
+
 
     // Creating design / feature matrix
 
@@ -164,25 +184,12 @@ int main(int argc, char * argv[]){
             value += inverse[i][j] * crossProductVec[j];
         }
         coefficients[i] = value;
-        if(SHOW_COEFFS){
-            printf("%lf ", coefficients[i]);
-            if(i > 0){
-                printf("x^%u ", i);
-            }
-            if(i + 1 < matDim){
-                printf("+ ");
-            }
-        }
     }
 
-    if(SHOW_COEFFS){
-        printf("\n");
-    }
+    // Predict responses to inputs based on calculated function
 
-    // Predict responses to inputs based on modeled function
-
-    double predictions[numPoints];
-    for(unsigned i = 0; i < numPoints; i++){
+    double predictions[numInputs];
+    for(unsigned i = 0; i < numInputs; i++){
         predictions[i] = coefficients[0];
         for(unsigned j = 1; j < matDim; j++){
             predictions[i] += coefficients[j] * pow(inputs[i], j);
@@ -200,11 +207,21 @@ int main(int argc, char * argv[]){
         meanSquaredError += squaredErrors[i];
     }
     meanSquaredError /= numPoints;
-    printf("MSE: %.5f\n", meanSquaredError);
+
+    printf("\nMSE: %.5f\n", meanSquaredError);
     printf("MSE Root: %.5f\n", pow(meanSquaredError, 0.5));
 
-    file = fopen(OUTPUT_FILE, "w");
-    for(unsigned i = 0; i < numPoints; i++){
+    printf("\nCoefficients:\n");
+    printf("%lf", coefficients[0]);
+    for(unsigned i = 1; i < matDim; i++){
+        printf(" + %lf x^%u", coefficients[i], i);
+    }
+    printf("\n");
+
+
+    // Writing predictions to file
+    FILE * file = fopen(OUTPUT_FILE, "w");
+    for(unsigned i = 0; i < numInputs; i++){
         fprintf(file, "%lf\n", predictions[i]);
     }
     fclose(file);
