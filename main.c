@@ -2,12 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define OUTPUT_FILE "predictions.out"
-
-#define NUM_ARGS 3
+#define NUM_ARGS 4
 const char reqArgs[NUM_ARGS][50] = {
     "path of input file",
     "path of response file",
+    "path of output file",
     "degree of regression",
 };
 
@@ -22,7 +21,7 @@ int main(int argc, char * argv[]){
 
     char * inputFile = argv[1];
     char * responseFile = argv[2];
-    unsigned degree = (unsigned)atoi(argv[3]);
+    unsigned degree = (unsigned)atoi(argv[4]);
     unsigned matDim = degree + 1;
 
     // Counting lines of file
@@ -220,7 +219,7 @@ int main(int argc, char * argv[]){
 
 
     // Writing predictions to file
-    FILE * file = fopen(OUTPUT_FILE, "w");
+    FILE * file = fopen(argv[3], "w");
     for(unsigned i = 0; i < numInputs; i++){
         fprintf(file, "%lf\n", predictions[i]);
     }
